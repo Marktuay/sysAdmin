@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
+import pandas as pd
+import io
 
 from backend.database import get_db
 from backend.models.employee import Employee, EmployeeStatus
@@ -43,6 +46,61 @@ def read_employees(
             emp.linea_actual = "-"
 
     return employees
+
+@router.get("/export")
+def export_employees(
+    search: Optional[str] = None,
+    estado: Optional[EmployeeStatus] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Exportar empleados a Excel"""
+    query = db.query(Employee)
+    
+    if search:
+        query = query.filter(Employee.nombre_completo.ilike(f"%{search}%"))
+    
+    if estado:
+        query = query.filter(Employee.estado == estado)
+        
+    employees = query.all()
+    
+    data = []
+    for emp in employees:
+        active_assignment = next((a for a in emp.assignments if a.fecha_devolucion is None), None)
+        dispositivo = "Sin asignar"
+        linea = "-"
+        
+        if active_assignment and active_assignment.device:
+             dispositivo = f"{active_assignment.device.marca} {active_assignment.device.modelo}"
+             linea = active_assignment.device.numero_telefono or "Sin línea"
+        
+        data.append({
+            "ID": emp.id,
+            "Nombre Completo": emp.nombre_completo,
+            "Cargo": emp.cargo,
+            "Departamento": emp.departamento,
+            "Ubicación": emp.ubicacion,
+            "Empresa": emp.empresa,
+            "Estado": emp.estado.value,
+            "Dispositivo Actual": dispositivo,
+            "Línea": linea
+        })
+    
+    df = pd.DataFrame(data)
+    stream = io.BytesIO()
+    
+    # Auto-adjust columns width logic is a bit complex with pandas alone, but basic export works
+    with pd.ExcelWriter(stream, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Empleados')
+    
+    stream.seek(0)
+    
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=empleados.xlsx"}
+    )
 
 @router.get("/{id}", response_model=EmployeeWithDevices)
 def read_employee(

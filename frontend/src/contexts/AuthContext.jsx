@@ -48,10 +48,17 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setUser(null);
+    const logout = async () => {
+        try {
+            // Intentar registrar logout en backend (fire and forget)
+            await api.post('/auth/logout');
+        } catch (error) {
+            console.error('Error logging out on server:', error);
+        } finally {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
+        }
     };
 
     const hasRole = (roles) => {

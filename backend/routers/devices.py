@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import date
+import pandas as pd
+import io
 
 from backend.database import get_db
 from backend.models.device import Device, DeviceStatus, PhysicalCondition
@@ -14,6 +17,72 @@ router = APIRouter(prefix="/devices", tags=["Devices"])
 from backend.models.assignment import Assignment
 from backend.models.employee import Employee
 from sqlalchemy import or_
+
+@router.get("/export")
+def export_devices(
+    search: Optional[str] = None,
+    estado: Optional[DeviceStatus] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Exportar dispositivos a Excel"""
+    query = db.query(Device)
+    
+    if search:
+        query = query.outerjoin(Assignment, (Assignment.device_id == Device.id) & (Assignment.fecha_devolucion == None))
+        query = query.outerjoin(Employee, Assignment.employee_id == Employee.id)
+        
+        query = query.filter(
+            or_(
+                Device.marca.ilike(f"%{search}%"),
+                Device.modelo.ilike(f"%{search}%"),
+                Device.imei.ilike(f"%{search}%"),
+                Device.numero_telefono.ilike(f"%{search}%"),
+                Employee.nombre_completo.ilike(f"%{search}%")
+            )
+        )
+    
+    if estado:
+        query = query.filter(Device.estado == estado)
+        
+    devices = query.all()
+    
+    data = []
+    for dev in devices:
+        asignado_a = "Disponible"
+        active_assignment = next((a for a in dev.assignments if a.fecha_devolucion is None), None)
+        
+        if active_assignment and active_assignment.employee:
+            asignado_a = active_assignment.employee.nombre_completo
+        elif dev.estado == DeviceStatus.baja:
+            asignado_a = "De Baja"
+            
+        data.append({
+            "ID": dev.id,
+            "Marca": dev.marca,
+            "Modelo": dev.modelo,
+            "IMEI": dev.imei,
+            "Número": dev.numero_telefono,
+            "Estado": dev.estado.value,
+            "Estado Físico": dev.estado_fisico.value,
+            "Costo Inicial": dev.costo_inicial,
+            "Fecha Compra": dev.fecha_compra,
+            "Asignado A": asignado_a
+        })
+    
+    df = pd.DataFrame(data)
+    stream = io.BytesIO()
+    
+    with pd.ExcelWriter(stream, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Dispositivos')
+    
+    stream.seek(0)
+    
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=dispositivos.xlsx"}
+    )
 
 @router.get("/", response_model=List[DeviceResponse])
 def read_devices(

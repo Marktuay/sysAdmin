@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 
 from backend.database import get_db
 from backend.models.user import User
+from backend.models.user_activity import UserActivity
 from backend.schemas.user import UserCreate, UserResponse, Token
 from backend.services.auth import (
     authenticate_user,
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/login", response_model=Token)
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
@@ -32,6 +34,16 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    # Registrar actividad de login
+    activity = UserActivity(
+        user_id=user.id,
+        action="login",
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.add(activity)
+    db.commit()
+    
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username, "role": user.role.value},
@@ -39,6 +51,24 @@ async def login(
     )
     
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/logout")
+async def logout(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Logout de usuario (registro de actividad)"""
+    activity = UserActivity(
+        user_id=current_user.id,
+        action="logout",
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.add(activity)
+    db.commit()
+    return {"message": "Logout exitoso"}
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

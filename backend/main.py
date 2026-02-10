@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import os
 
-from backend.routers import auth, employees, devices, assignments, reports, plans
+from backend.routers import auth, employees, devices, assignments, reports, plans, users
 
 # Cargar variables de entorno
 load_dotenv()
@@ -37,7 +37,9 @@ app.include_router(employees.router)
 app.include_router(devices.router)
 app.include_router(assignments.router)
 app.include_router(reports.router)
+app.include_router(reports.router)
 app.include_router(plans.router)
+app.include_router(users.router)
 
 # Ruta raíz
 @app.get("/")

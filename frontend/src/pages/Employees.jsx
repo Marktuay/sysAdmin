@@ -12,7 +12,8 @@ import {
     UserCheck,
     UserX,
     MapPin,
-    Briefcase
+    Briefcase,
+    FileDown
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import EmployeeModal from '../components/EmployeeModal';
@@ -22,6 +23,7 @@ const Employees = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentEmployee, setCurrentEmployee] = useState(null);
     const { hasRole } = useAuth();
@@ -83,6 +85,33 @@ const Employees = () => {
         }
     };
 
+    const handleExport = async () => {
+        try {
+            setIsExporting(true);
+            const params = {
+                search: search || undefined,
+                estado: filter || undefined
+            };
+            const response = await api.get('/employees/export', { 
+                params,
+                responseType: 'blob' 
+            });
+            
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'empleados.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error('Error downloading excel:', error);
+            alert('Error al exportar a Excel');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -92,10 +121,20 @@ const Employees = () => {
                     <p className="text-slate-500">Gestión de personal y terminales asignadas</p>
                 </div>
                 {hasRole(['admin', 'rrhh']) && (
-                    <button className="btn-primary" onClick={handleCreate}>
-                        <Plus size={20} />
-                        <span>Nuevo Empleado</span>
-                    </button>
+                    <div className="flex gap-2">
+                        <button 
+                            className="btn-secondary" 
+                            onClick={handleExport}
+                            disabled={isExporting}
+                        >
+                            <FileDown size={20} />
+                            <span className="hidden sm:inline">{isExporting ? 'Exportando...' : 'Exportar Excel'}</span>
+                        </button>
+                        <button className="btn-primary" onClick={handleCreate}>
+                            <Plus size={20} />
+                            <span>Nuevo Empleado</span>
+                        </button>
+                    </div>
                 )}
             </div>
 
@@ -106,7 +145,7 @@ const Employees = () => {
                     <input
                         type="text"
                         placeholder="Buscar por nombre o cargo..."
-                        className="input-field pl-10"
+                        className="input-field !pl-10"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />

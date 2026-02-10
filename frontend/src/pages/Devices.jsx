@@ -15,7 +15,8 @@ import {
     Phone,
     Hash,
     LayoutGrid,
-    List
+    List,
+    FileDown
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import DeviceModal from '../components/DeviceModal';
@@ -26,6 +27,7 @@ const Devices = ({ initialFilter = '', title = 'Dispositivos' }) => {
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState(initialFilter);
     const [viewMode, setViewMode] = useState('list'); // Default to list/table as requested for inventory checks
+    const [isExporting, setIsExporting] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentDevice, setCurrentDevice] = useState(null);
     const { hasRole } = useAuth();
@@ -92,6 +94,35 @@ const Devices = ({ initialFilter = '', title = 'Dispositivos' }) => {
         }
     };
 
+    const handleExport = async () => {
+        try {
+            setIsExporting(true);
+            const params = {
+                search: search || undefined,
+                estado: filter || undefined
+            };
+            const response = await api.get('/devices/export', { 
+                params,
+                responseType: 'blob' 
+            });
+            
+            const filename = title === 'Líneas Libres' ? 'lineas_libres.xlsx' : 'dispositivos.xlsx';
+            
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error('Error downloading excel:', error);
+            alert('Error al exportar a Excel');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const getStatusStyle = (status) => {
         switch (status) {
             case 'disponible': return 'bg-blue-100 text-blue-700';
@@ -115,10 +146,20 @@ const Devices = ({ initialFilter = '', title = 'Dispositivos' }) => {
                     </p>
                 </div>
                 {hasRole(['admin', 'rrhh']) && (
-                    <button className="btn-primary" onClick={handleCreate}>
-                        <Plus size={20} />
-                        <span>{title === 'Líneas Libres' ? 'Agregar Línea' : 'Añadir Equipo'}</span>
-                    </button>
+                    <div className="flex gap-2">
+                         <button 
+                            className="btn-secondary" 
+                            onClick={handleExport}
+                            disabled={isExporting}
+                        >
+                            <FileDown size={20} />
+                            <span className="hidden sm:inline">{isExporting ? 'Exportando...' : 'Exportar Excel'}</span>
+                        </button>
+                        <button className="btn-primary" onClick={handleCreate}>
+                            <Plus size={20} />
+                            <span>{title === 'Líneas Libres' ? 'Agregar Línea' : 'Añadir Equipo'}</span>
+                        </button>
+                    </div>
                 )}
             </div>
 
@@ -129,7 +170,7 @@ const Devices = ({ initialFilter = '', title = 'Dispositivos' }) => {
                     <input
                         type="text"
                         placeholder="Buscar por marca, modelo, IMEI, número o empleado..."
-                        className="input-field pl-10"
+                        className="input-field !pl-10"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />

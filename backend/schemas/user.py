@@ -44,3 +44,17 @@ class TokenData(BaseModel):
     """Schema para datos del token"""
     username: Optional[str] = None
     role: Optional[str] = None
+
+
+class UserActivityResponse(BaseModel):
+    """Schema para historial de actividad"""
+    id: int
+    user_id: int
+    action: str
+    ip_address: Optional[str]
+    user_agent: Optional[str]
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
+

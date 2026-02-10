@@ -25,6 +25,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         { name: 'Líneas Libres', icon: <Smartphone size={20} className="text-green-500" />, path: '/available-lines', roles: ['admin', 'rrhh', 'supervisor'] },
         { name: 'Asignaciones', icon: <History size={20} />, path: '/assignments', roles: ['admin', 'rrhh'] },
         { name: 'Reportes', icon: <FileText size={20} />, path: '/reports', roles: ['admin', 'contabilidad', 'auditoria'] },
+        { name: 'Administración', icon: <UserIcon size={20} />, path: '/admin/users', roles: ['admin'] },
     ];
 
     const handleLogout = () => {
@@ -52,11 +53,18 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 <div className="flex flex-col h-full">
                     {/* Header */}
                     <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                        <div className="flex items-center gap-2 font-bold text-xl text-primary-600">
-                            <Smartphone className="text-primary-500" />
-                            <span>SysAdmin</span>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2 font-bold text-xl text-primary-600">
+                                <Smartphone className="text-primary-500" />
+                                <span>SysAdmin</span>
+                            </div>
+                            <img 
+                                src="/cropped-logo.png" 
+                                alt="New Century" 
+                                className="h-8 max-w-[150px] object-contain"
+                            />
                         </div>
-                        <button onClick={toggleSidebar} className="lg:hidden text-slate-500">
+                        <button onClick={toggleSidebar} className="lg:hidden text-slate-500 mb-auto">
                             <X size={20} />
                         </button>
                     </div>

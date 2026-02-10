@@ -13,7 +13,8 @@ import {
     Smartphone,
     Calendar,
     AlertCircle,
-    X
+    X,
+    FileDown
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -28,6 +29,7 @@ const Assignments = () => {
     const [selectedDevice, setSelectedDevice] = useState('');
     const [observaciones, setObservaciones] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     const { hasRole } = useAuth();
     const debouncedSearch = useDebounce(search, 500);
@@ -135,6 +137,30 @@ const Assignments = () => {
         }
     };
 
+    const handleExportExcel = async () => {
+        try {
+            setIsExporting(true);
+            const response = await api.get('/assignments/export', {
+                params: { 
+                    search: search || undefined
+                },
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'asignaciones.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error('Error exporting assignments:', error);
+            alert('Error al exportar asignaciones.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -144,13 +170,23 @@ const Assignments = () => {
                     <p className="text-slate-500">Historial de entrega y devolución de equipos</p>
                 </div>
                 {hasRole(['admin', 'rrhh']) && (
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="btn-primary"
-                    >
-                        <Plus size={20} />
-                        <span>Nueva Asignación</span>
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleExportExcel}
+                            disabled={isExporting}
+                            className="btn-secondary"
+                        >
+                            <FileDown size={20} />
+                            <span className="hidden sm:inline">{isExporting ? 'Exportando...' : 'Exportar Excel'}</span>
+                        </button>
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="btn-primary"
+                        >
+                            <Plus size={20} />
+                            <span>Nueva Asignación</span>
+                        </button>
+                    </div>
                 )}
             </div>
 
@@ -160,7 +196,7 @@ const Assignments = () => {
                 <input
                     type="text"
                     placeholder="Buscar por empleado, dispositivo, IMEI o número..."
-                    className="input-field pl-10 w-full md:w-1/2 lg:w-1/3"
+                    className="input-field !pl-10 w-full md:w-1/2 lg:w-1/3"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
@@ -311,7 +347,7 @@ const Assignments = () => {
                                 <div className="relative">
                                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                     <select
-                                        className="input-field pl-10"
+                                        className="input-field !pl-10"
                                         value={selectedEmployee}
                                         onChange={(e) => setSelectedEmployee(e.target.value)}
                                         required
@@ -329,7 +365,7 @@ const Assignments = () => {
                                 <div className="relative">
                                     <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                     <select
-                                        className="input-field pl-10"
+                                        className="input-field !pl-10"
                                         value={selectedDevice}
                                         onChange={(e) => setSelectedDevice(e.target.value)}
                                         required

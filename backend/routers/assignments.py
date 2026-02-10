@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
+from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import date
 import os
-from fastapi.responses import FileResponse
+import pandas as pd
+import io
 
 from backend.database import get_db
 from backend.models.assignment import Assignment
@@ -15,6 +17,69 @@ from backend.services.auth import get_current_user, get_current_editor
 from backend.services.pdf_generator import generate_acta_entrega, generate_acta_remision
 
 router = APIRouter(prefix="/assignments", tags=["Assignments"])
+
+@router.get("/export")
+def export_assignments(
+    search: Optional[str] = None,
+    employee_id: Optional[int] = None,
+    device_id: Optional[int] = None,
+    active_only: bool = False,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Exportar historial de asignaciones a Excel"""
+    query = db.query(Assignment)
+    
+    if search:
+        query = query.join(Assignment.employee).join(Assignment.device).filter(
+            (Employee.nombre_completo.ilike(f"%{search}%")) |
+            (Device.marca.ilike(f"%{search}%")) |
+            (Device.modelo.ilike(f"%{search}%")) |
+            (Device.imei.ilike(f"%{search}%")) |
+            (Device.numero_telefono.ilike(f"%{search}%"))
+        )
+
+    if employee_id:
+        query = query.filter(Assignment.employee_id == employee_id)
+    
+    if device_id:
+        query = query.filter(Assignment.device_id == device_id)
+        
+    if active_only:
+        query = query.filter(Assignment.fecha_devolucion == None)
+        
+    assignments = query.all()
+    
+    data = []
+    for assign in assignments:
+        estado = "Activa" if not assign.fecha_devolucion else "Devuelta"
+        
+        data.append({
+            "ID asignación": assign.id,
+            "Empleado": assign.employee.nombre_completo if assign.employee else "N/A",
+            "Cargo": assign.employee.cargo if assign.employee else "N/A",
+            "Dispositivo": f"{assign.device.marca} {assign.device.modelo}" if assign.device else "N/A",
+            "IMEI": assign.device.imei if assign.device else "N/A",
+            "Línea": assign.device.numero_telefono if assign.device else "N/A",
+            "Fecha Asignación": assign.fecha_asignacion,
+            "Fecha Devolución": assign.fecha_devolucion,
+            "Estado": estado,
+            "Observaciones": assign.observaciones
+        })
+    
+    df = pd.DataFrame(data)
+    stream = io.BytesIO()
+    
+    with pd.ExcelWriter(stream, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Asignaciones')
+    
+    stream.seek(0)
+    
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=asignaciones.xlsx"}
+    )
 
 @router.get("/", response_model=List[AssignmentResponse])
 def read_assignments(

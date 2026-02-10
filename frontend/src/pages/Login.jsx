@@ -39,6 +39,7 @@ const Login = () => {
                         <Smartphone size={40} />
                     </div>
                     <h1 className="text-3xl font-bold text-slate-900">SysAdmin Móvil</h1>
+                    <img src="/cropped-logo.png" alt="Logo" className="h-12 mx-auto my-3 object-contain" />
                     <p className="text-slate-500 mt-2">Gestión de dispositivos New Century</p>
                 </div>
 
@@ -60,7 +61,7 @@ const Login = () => {
                                 type="text"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
-                                className="input-field pl-10"
+                                className="input-field !pl-10"
                                 placeholder="admin"
                                 required
                             />
@@ -77,7 +78,7 @@ const Login = () => {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="input-field pl-10"
+                                className="input-field !pl-10"
                                 placeholder="••••••••"
                                 required
                             />

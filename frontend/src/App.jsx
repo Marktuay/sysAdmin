@@ -11,6 +11,7 @@ import Employees from './pages/Employees';
 import Devices from './pages/Devices';
 import Assignments from './pages/Assignments';
 import Reports from './pages/Reports';
+import AdminUsers from './pages/AdminUsers';
 
 // Placeholder common pages
 const Placeholder = ({ title }) => (
@@ -40,6 +41,9 @@ const App = () => {
             <Route path="available-lines" element={<Devices initialFilter="disponible" title="Líneas Libres" />} />
             <Route path="assignments" element={<Assignments />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="admin/users" element={
+              <AdminUsers />
+            } />
           </Route>
 
           {/* Fallback */}

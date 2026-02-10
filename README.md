@@ -16,7 +16,22 @@ Sistema web completo para la gestión de dispositivos móviles asignados a emple
 
 ## � Actualizaciones Recientes (Febrero 2026)
 
-### 📄 Generación de Documentos (PDF)
+### �️ Módulo de Administración y Seguridad
+- **Gestión de Usuarios**: Nuevo panel administrativo para crear, editar y gestionar los accesos de los usuarios del sistema.
+- **Auditoría de Actividad**: Registro automático de eventos de seguridad (`UserActivity`), incluyendo direcciones IP, fecha/hora y tipo de acción (Login/Logout).
+- **Protección de Rutas**: Implementación robusta de guardias de navegación para restringir el acceso a módulos sensibles.
+
+### 📊 Exportación y Datos
+- **Excel Nativo**: Botones de exportación directa a `.xlsx` implementados en los módulos de Empleados, Dispositivos y Asignaciones.
+- **Integridad de Datos**: Scripts de corrección y validación para asegurar la consistencia de la base de datos.
+- **Reset de Credenciales**: Mecanismos de recuperación de acceso para administradores (`scripts/reset_password.py`).
+
+### 🎨 Identidad y UI/UX
+- **Branding Corporativo**: Inclusión de Isologotipo y logotipos en Sidebar, Login y Favicon.
+- **Correcciones de Interfaz**: Solución a problemas de superposición de texto e iconos en formularios modales (`!pl-10`).
+- **Navegación Intuitiva**: Menús laterales actualizados y condicionales según el rol del usuario conectado.
+
+### �📄 Generación de Documentos (PDF)
 - **Marca Corporativa**: Inclusión de logo oficial en cabeceras de actas.
 - **Formato Mejorado**: Ajuste de anchos, inclusión de columnas de fechas y optimización de fuentes.
 - **Lógica de Fechas**: Distinción entre fecha de asignación (Entrega) y fecha de generación (Remisión).
