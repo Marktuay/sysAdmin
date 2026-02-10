@@ -5,6 +5,7 @@ services:
     image: postgres:15-alpine
     container_name: device_management_db
     restart: always
+    privileged: true
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
@@ -25,6 +26,7 @@ services:
     image: dpage/pgadmin4:latest
     container_name: device_management_pgadmin
     restart: always
+    privileged: true
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
@@ -43,6 +45,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: always
+    privileged: true
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-device_management}
       SECRET_KEY: ${SECRET_KEY:-supersecretkey}
