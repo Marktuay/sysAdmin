@@ -5,16 +5,13 @@ services:
     image: postgres:15-alpine
     container_name: device_management_db
     restart: always
+    network_mode: host
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
       POSTGRES_DB: ${POSTGRES_DB:-device_management}
-    ports:
-      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - device_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-device_management}"]
       interval: 10s
@@ -25,15 +22,13 @@ services:
     image: dpage/pgadmin4:latest
     container_name: device_management_pgadmin
     restart: always
+    network_mode: host
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
-    ports:
-      - "5051:80"
+      PGADMIN_LISTEN_PORT: 5051
     volumes:
       - pgadmin_data:/var/lib/pgadmin
-    networks:
-      - device_network
     depends_on:
       - postgres
 
@@ -43,19 +38,16 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: always
+    network_mode: host
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-device_management}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@localhost:5432/${POSTGRES_DB:-device_management}
       SECRET_KEY: ${SECRET_KEY:-supersecretkey}
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 1440
       # Permitimos acceso local, desde el IP del servidor y cualquier origen (para facilitar desarrollo/pruebas)
       ALLOWED_ORIGINS: "http://localhost,http://localhost:3000,http://192.168.6.33,http://192.168.6.33:80,*"
-    ports:
-      - "8000:8000"
     volumes:
       - ./backend/static/pdfs:/app/backend/static/pdfs
-    networks:
-      - device_network
     depends_on:
       postgres:
         condition: service_healthy
@@ -66,10 +58,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     restart: always
-    ports:
-      - "80:80"
-    networks:
-      - device_network
+    network_mode: host
     depends_on:
       - backend
 
@@ -79,6 +68,3 @@ volumes:
   pgadmin_data:
     driver: local
 
-networks:
-  device_network:
-    driver: bridge
