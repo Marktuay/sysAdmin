@@ -12,7 +12,7 @@ Sistema web completo para la gestión de dispositivos móviles asignados a emple
 - ✅ Control de acceso basado en roles (Admin, RRHH, Supervisor, Contabilidad, Auditoría)
 - ✅ Importación de datos desde Excel
 - ✅ Frontend moderno con React y Vite
-- 🔮 Futuro: Control de planes, consumo y geolocalización
+- 🔮 Futuro: Integración con API de proveedor telefónico para monitorización de consumo de datos, control de planes y geolocalización.
 
 ## � Actualizaciones Recientes (Febrero 2026)
 

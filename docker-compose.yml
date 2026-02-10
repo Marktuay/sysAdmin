@@ -15,6 +15,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - device_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-device_management}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -31,6 +36,42 @@ services:
       - device_network
     depends_on:
       - postgres
+
+  backend:
+    container_name: device_management_backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-device_management}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      # Permitimos acceso local, desde el IP del servidor y cualquier origen (para facilitar desarrollo/pruebas)
+      ALLOWED_ORIGINS: "http://localhost,http://localhost:3000,http://192.168.6.33,http://192.168.6.33:80,*"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/static/pdfs:/app/backend/static/pdfs
+    networks:
+      - device_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    container_name: device_management_frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "80:80"
+    networks:
+      - device_network
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
